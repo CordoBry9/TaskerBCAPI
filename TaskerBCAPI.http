@@ -1,0 +1,6 @@
+@TaskerBCAPI_HostAddress = http://localhost:5219
+
+GET {{TaskerBCAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
