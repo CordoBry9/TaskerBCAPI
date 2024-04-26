@@ -77,7 +77,6 @@ namespace TaskerBCAPI.Controllers
 
         [HttpPost] //POST: api/TaskerItems
         [Authorize]
-
         public async Task<ActionResult<TaskerItemDTO>> CreateTaskerItem([FromBody] TaskerItemDTO newTaskerItem)
         {
             string userId = _userManager.GetUserId(User)!;
@@ -103,8 +102,83 @@ namespace TaskerBCAPI.Controllers
                 Name = dbTaskerItem.Name,
                 IsComplete = dbTaskerItem.IsComplete,
             };
-            return CreatedAtAction(nameof(GetTaskerItem), new {id = result.Id}, result);
+            return CreatedAtAction(nameof(GetTaskerItem), new { id = result.Id }, result);
         }
 
+        /*
+        - Update Tasker Items
+        - Get ID of the user making the request
+        - get the existing item out of the database & make sure it belongs to the user
+        - update the item with the data in the DTO
+        - save the changes
+        - send back a success/failure response
+        */
+        // not returning json so no type parameter needed
+
+        //- get the ID of the tasker item to update
+        //- get the updated data from the body of the request
+        [HttpPut("{id:guid}")] //all actions take controllers route unless we add to controllers route by the verb 
+        [Authorize]
+        public async Task<ActionResult> UpdateTaskerItem([FromRoute] Guid id,
+                                                            [FromBody] TaskerItemDTO updatedDTO)
+        {
+            //get the id of the user making the request
+            string userId = _userManager.GetUserId(User)!;
+
+            //get the existing item out of the database and make sure it belongs to the user
+            TaskerItem? existingItem = await _context.TaskerItems
+                .FirstOrDefaultAsync(t => t.UserId == userId && t.Id == id );
+
+            if (existingItem == null)
+            {
+                return NotFound();
+            }
+            else
+            {
+                // update the item with the data in the DTO
+                existingItem.Name = updatedDTO.Name;
+                existingItem.IsComplete = updatedDTO.IsComplete;
+
+                // save the changes
+                _context.TaskerItems.Update(existingItem);
+                await _context.SaveChangesAsync();
+                //-send back a success/failure response
+                return Ok();
+            }
+        }
+
+        /*
+         * -delete Tasker Item
+         * - ensure the user is logged in
+         * get the id of the item to delete (from the route
+         * get the user's id from UserManager
+         * get the item from the DB
+         * make sure it belongs to the user
+         * delete it 
+         * send back some response
+         */
+
+        [HttpDelete("{id:guid}")]
+        [Authorize]
+
+        public async Task<ActionResult> DeleteTaskerItem([FromRoute,] Guid id) //get the ID of the item to delete from route
+        {
+            string userId = _userManager.GetUserId(User)!; // get the user's ID (from the UserManager)
+
+            //get the item from the DB and make sure it belongs to the user
+            TaskerItem? existingItem = await _context.TaskerItems
+                .FirstOrDefaultAsync(t => t.UserId == userId && t.Id == id);
+
+            if (existingItem == null)
+            {
+                return NotFound();
+            }
+            else
+            {
+                _context.TaskerItems.Remove(existingItem);
+                await _context.SaveChangesAsync();
+                return NoContent();
+            }
+        }
     }
 }
